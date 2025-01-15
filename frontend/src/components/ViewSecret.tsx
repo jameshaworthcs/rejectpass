@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Container, Paper, Title, Text, Button, Alert, Stack, Loader, Center, Textarea, Anchor } from '@mantine/core';
+import { Container, Paper, Title, Button, Alert, Stack, Loader, Center, Textarea, Anchor } from '@mantine/core';
 import { IconEye, IconAlertCircle, IconCopy, IconCheck, IconPlus } from '@tabler/icons-react';
 import { getSecret } from '../services/api';
 
