@@ -6,6 +6,7 @@ import redis
 
 from cryptography.fernet import Fernet
 from flask import abort, Flask, render_template, request, jsonify, make_response
+from flask_cors import CORS
 from redis.exceptions import ConnectionError
 from urllib.parse import quote_plus
 from urllib.parse import unquote_plus
@@ -21,6 +22,8 @@ TOKEN_SEPARATOR = '~'
 
 # Initialize Flask Application
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
+
 if os.environ.get('DEBUG'):
     app.debug = True
 app.secret_key = os.environ.get('SECRET_KEY', 'Secret Key')
