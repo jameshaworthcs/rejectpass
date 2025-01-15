@@ -9,7 +9,7 @@ def run_frontend():
     return subprocess.Popen(['npm', 'run', 'dev'], shell=True)
 
 def run_backend():
-    return subprocess.Popen([sys.executable, '-m', 'flask', '--app', 'reject-secret.main', 'run'], 
+    return subprocess.Popen([sys.executable, 'reject_secret/main.py'], 
                           env={**os.environ, 'FLASK_DEBUG': '1'})
 
 def main():
