@@ -1,8 +1,9 @@
 import axios from 'axios';
 import { SecretResponse } from '../types';
+import { config } from '../config';
 
 const api = axios.create({
-    baseURL: 'http://localhost:5000',
+    baseURL: config.apiBaseUrl,
     headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json'

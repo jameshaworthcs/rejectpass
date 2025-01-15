@@ -1,28 +1,14 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { MantineProvider, AppShell, Title, Container } from '@mantine/core';
 import { useColorScheme } from '@mantine/hooks';
-import { useState } from 'react';
 import { CreateSecret } from './components/CreateSecret';
 import { ViewSecret } from './components/ViewSecret';
 
-const theme = {
-  primaryColor: 'blue',
-  fontFamily: 'Inter, sans-serif',
-  components: {
-    Button: {
-      defaultProps: {
-        size: 'md',
-      },
-    },
-  },
-};
-
 function App() {
   const preferredColorScheme = useColorScheme();
-  const [colorScheme, setColorScheme] = useState<'light' | 'dark'>(preferredColorScheme);
 
   return (
-    <MantineProvider defaultColorScheme={colorScheme}>
+    <MantineProvider defaultColorScheme={preferredColorScheme}>
       <Router>
         <AppShell
           header={{ height: 60 }}
