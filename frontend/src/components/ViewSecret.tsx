@@ -1,17 +1,34 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Container, Paper, Title, Button, Alert, Stack, Loader, Center, Textarea, Anchor } from '@mantine/core';
+import { Container, Paper, Title, Button, Alert, Stack, Loader, Center, Textarea } from '@mantine/core';
 import { IconEye, IconAlertCircle, IconCopy, IconCheck, IconPlus } from '@tabler/icons-react';
-import { getSecret } from '../services/api';
+import { getSecret, checkSecretExists } from '../services/api';
 
 export function ViewSecret() {
     const { token } = useParams<{ token: string }>();
     const navigate = useNavigate();
     const [secret, setSecret] = useState<string | null>(null);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
     const [revealed, setRevealed] = useState(false);
+    const [exists, setExists] = useState<boolean | null>(null);
+
+    useEffect(() => {
+        const checkExists = async () => {
+            if (!token) return;
+            try {
+                const exists = await checkSecretExists(token);
+                setExists(exists);
+            } catch (err) {
+                console.error('Error checking secret:', err);
+                setError('Unable to verify secret status.');
+            } finally {
+                setLoading(false);
+            }
+        };
+        checkExists();
+    }, [token]);
 
     const handleReveal = async () => {
         if (!token) return;
@@ -52,9 +69,7 @@ export function ViewSecret() {
     return (
         <Container size="sm">
             <Paper radius="md" p="xl" withBorder>
-                <Anchor onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
-                    <Title order={2} mb="md">View Secret</Title>
-                </Anchor>
+                <Title order={2} mb="md">View Secret</Title>
 
                 {error ? (
                     <Stack>
@@ -65,7 +80,16 @@ export function ViewSecret() {
                             Create New Secret
                         </Button>
                     </Stack>
-                ) : !revealed ? (
+                ) : exists === false ? (
+                    <Stack>
+                        <Alert icon={<IconAlertCircle size={16} />} color="red">
+                            This secret does not exist or has already been viewed.
+                        </Alert>
+                        <Button variant="subtle" onClick={() => navigate('/')}>
+                            Create New Secret
+                        </Button>
+                    </Stack>
+                ) : exists && !revealed ? (
                     <Stack>
                         <Alert color="blue">
                             This secret can only be viewed once and will be permanently deleted afterward.
@@ -80,7 +104,7 @@ export function ViewSecret() {
                             Reveal Secret
                         </Button>
                     </Stack>
-                ) : (
+                ) : revealed ? (
                     <Stack>
                         <Alert color="yellow">
                             This secret has been permanently deleted and cannot be viewed again.
@@ -112,7 +136,7 @@ export function ViewSecret() {
                             </Stack>
                         </Paper>
                     </Stack>
-                )}
+                ) : null}
             </Paper>
         </Container>
     );

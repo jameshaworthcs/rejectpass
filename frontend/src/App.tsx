@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { MantineProvider, AppShell, Title, Container } from '@mantine/core';
 import { useColorScheme } from '@mantine/hooks';
+import { Link } from 'react-router-dom';
 import { CreateSecret } from './components/CreateSecret';
 import { ViewSecret } from './components/ViewSecret';
 
@@ -16,7 +17,9 @@ function App() {
         >
           <AppShell.Header>
             <Container size="lg" style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
-              <Title order={1} size="h3">Reject Secret Sharer</Title>
+              <Link to="/" className="header-link" style={{ textDecoration: 'none', color: 'inherit' }}>
+                <Title order={1} size="h3">Reject Secret Sharer</Title>
+              </Link>
             </Container>
           </AppShell.Header>
 

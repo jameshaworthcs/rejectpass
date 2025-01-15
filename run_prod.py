@@ -1,6 +1,7 @@
 import subprocess
 import sys
 import os
+import platform
 from dotenv import load_dotenv
 
 def run_frontend():
@@ -13,11 +14,21 @@ def run_frontend():
 
 def run_backend():
     backend_port = os.getenv('BACKEND_PORT', '5000')
-    return subprocess.Popen([sys.executable, 'reject_secret/main.py'],
-                          env={**os.environ, 
-                               'FLASK_ENV': 'production',
-                               'FLASK_DEBUG': '0',
-                               'PORT': backend_port})
+    
+    # Use Gunicorn on Linux and Waitress on Windows
+    if platform.system() == 'Windows':
+        threads = os.getenv('WAITRESS_THREADS', '4')
+        return subprocess.Popen([sys.executable, '-c',
+                               'from waitress import serve; '
+                               'from reject_secret.main import app; '
+                               f'serve(app, host="0.0.0.0", port={backend_port}, threads={threads})'])
+    else:
+        workers = os.getenv('GUNICORN_WORKERS', '4')
+        return subprocess.Popen(['gunicorn',
+                               '--workers', workers,
+                               '--bind', f'0.0.0.0:{backend_port}',
+                               '--access-logfile', '-',
+                               'reject_secret.main:app'])
 
 def main():
     # Load environment variables

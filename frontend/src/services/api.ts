@@ -41,10 +41,10 @@ export const getSecret = async (token: string): Promise<string> => {
     }
 };
 
-export const checkSecret = async (token: string): Promise<boolean> => {
+export const checkSecretExists = async (token: string): Promise<boolean> => {
     try {
-        const response = await api.get(`/api/v2/passwords/${token}`);
-        return response.status === 200;
+        await api.head(`/api/v2/passwords/${token}`);
+        return true;
     } catch (error) {
         if (axios.isAxiosError(error) && error.response?.status === 404) {
             return false;

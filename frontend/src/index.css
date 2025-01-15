@@ -17,3 +17,7 @@ body {
   word-wrap: break-word;
   word-break: break-all;
 }
+
+.header-link:hover {
+  text-decoration: underline !important;
+}
