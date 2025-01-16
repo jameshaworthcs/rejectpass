@@ -292,7 +292,7 @@ def api_v2_set_password():
     }
     return jsonify(response_content)
 
-# Register the API blueprint
+# Register the API blueprint first
 app.register_blueprint(api)
 
 @app.route('/_/_/health', methods=['GET'])
@@ -300,21 +300,22 @@ app.register_blueprint(api)
 def health_check():
     return {}
 
-# Frontend routes - this must be last
-@app.route('/', defaults={'path': ''})
+# Frontend routes - serve static files with higher priority
 @app.route('/<path:path>')
-def serve_frontend(path):
-    # Skip API and health check routes
-    if path.startswith('rejectsecretapi/') or path == '_/_/health':
-        return abort(404)
-        
-    # First check if it's a frontend static file
+def serve_static(path):
     if path:
         frontend_file = os.path.join(frontend_dist, path)
         if os.path.exists(frontend_file) and os.path.isfile(frontend_file):
             return send_from_directory(frontend_dist, path)
-    
-    # For all other routes, serve the React app's index.html
+    return abort(404)  # Let other routes handle it
+
+# Catch-all route for the React app - lowest priority
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve_frontend(path):
+    # Don't handle API or health check routes
+    if path.startswith('rejectsecretapi/') or path == '_/_/health':
+        return abort(404)
     return send_from_directory(frontend_dist, 'index.html')
 
 @check_redis_alive
