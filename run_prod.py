@@ -4,16 +4,14 @@ import os
 import platform
 from dotenv import load_dotenv
 
-def run_frontend():
+def build_frontend():
     os.chdir('frontend')
     # Build the frontend for production
     subprocess.run(['npm', 'run', 'build'], shell=True, check=True)
-    # Serve the built files using a production-ready server
-    frontend_port = os.getenv('FRONTEND_PORT', '4173')
-    return subprocess.Popen(['npm', 'run', 'preview', '--', '--port', frontend_port], shell=True)
+    os.chdir('..')
 
-def run_backend():
-    backend_port = os.getenv('BACKEND_PORT', '5000')
+def run_server():
+    port = os.getenv('PORT', '5000')
     
     # Use Gunicorn on Linux and Waitress on Windows
     if platform.system() == 'Windows':
@@ -21,12 +19,12 @@ def run_backend():
         return subprocess.Popen([sys.executable, '-c',
                                'from waitress import serve; '
                                'from reject_secret.main import app; '
-                               f'serve(app, host="0.0.0.0", port={backend_port}, threads={threads})'])
+                               f'serve(app, host="0.0.0.0", port={port}, threads={threads})'])
     else:
         workers = os.getenv('GUNICORN_WORKERS', '4')
         return subprocess.Popen(['gunicorn',
                                '--workers', workers,
-                               '--bind', f'0.0.0.0:{backend_port}',
+                               '--bind', f'0.0.0.0:{port}',
                                '--access-logfile', '-',
                                'reject_secret.main:app'])
 
@@ -40,33 +38,27 @@ def main():
         
     print("Starting Reject Secret Sharer in production mode...")
     
-    frontend_port = os.getenv('FRONTEND_PORT', '4173')
-    backend_port = os.getenv('BACKEND_PORT', '5000')
+    port = os.getenv('PORT', '5000')
     
-    # Start backend
-    print("Starting backend server...")
-    backend = run_backend()
+    # Build frontend
+    print("Building frontend...")
+    build_frontend()
     
-    # Build and serve frontend
-    print("Building and serving frontend...")
-    frontend = run_frontend()
+    # Start server
+    print("Starting server...")
+    server = run_server()
     
     print("\nReject Secret Sharer is running in production mode!")
-    print(f"Frontend: http://localhost:{frontend_port}")
-    print(f"Backend: http://localhost:{backend_port}")
-    print("\nPress Ctrl+C to stop both servers.")
+    print(f"Server: http://localhost:{port}")
+    print("\nPress Ctrl+C to stop the server.")
     
     try:
-        # Wait for either process to finish
-        frontend.wait()
-        backend.wait()
+        server.wait()
     except KeyboardInterrupt:
-        print("\nShutting down servers...")
-        frontend.terminate()
-        backend.terminate()
-        frontend.wait()
-        backend.wait()
-        print("Servers stopped.")
+        print("\nShutting down server...")
+        server.terminate()
+        server.wait()
+        print("Server stopped.")
 
 if __name__ == '__main__':
     main() 

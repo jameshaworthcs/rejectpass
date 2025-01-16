@@ -5,15 +5,13 @@ import uuid
 import redis
 
 from cryptography.fernet import Fernet
-from flask import abort, Flask, render_template, request, jsonify, make_response
+from flask import abort, Flask, request, jsonify, make_response, send_from_directory
 from flask_cors import CORS
 from redis.exceptions import ConnectionError
 from urllib.parse import quote_plus
 from urllib.parse import unquote_plus
 from urllib.parse import urljoin
 from distutils.util import strtobool
-# _ is required to get the Jinja templates translated
-from flask_babel import Babel, _  # noqa: F401
 
 NO_SSL = bool(strtobool(os.environ.get('NO_SSL', 'False')))
 URL_PREFIX = os.environ.get('URL_PREFIX', None)
@@ -24,24 +22,16 @@ TOKEN_SEPARATOR = '~'
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
+# Set up frontend static files directory
+frontend_dist = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'frontend', 'dist'))
+
 if os.environ.get('DEBUG'):
     app.debug = True
 app.secret_key = os.environ.get('SECRET_KEY', 'Secret Key')
-app.config.update(
-    dict(STATIC_URL=os.environ.get('STATIC_URL', 'static')))
-
-
-# Set up Babel
-def get_locale():
-    return request.accept_languages.best_match(['en', 'es', 'de', 'nl', 'fr'])
-
-
-babel = Babel(app, locale_selector=get_locale)
 
 # Initialize Redis
 if os.environ.get('MOCK_REDIS'):
     from fakeredis import FakeStrictRedis
-
     redis_client = FakeStrictRedis()
 elif os.environ.get('REDIS_URL'):
     redis_client = redis.StrictRedis.from_url(os.environ.get('REDIS_URL'))
@@ -219,30 +209,22 @@ def set_base_url(req):
     return base_url
 
 
-@app.route('/', methods=['GET'])
-def index():
-    return render_template('set_password.html')
+# Serve frontend static files
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve_frontend(path):
+    # First check if it's a frontend static file
+    if path:
+        frontend_file = os.path.join(frontend_dist, path)
+        if os.path.exists(frontend_file) and os.path.isfile(frontend_file):
+            return send_from_directory(frontend_dist, path)
+    
+    # For all other routes, serve the React app's index.html
+    return send_from_directory(frontend_dist, 'index.html')
 
 
-@app.route('/', methods=['POST'])
-def handle_password():
-    password = request.form.get('password')
-    ttl = request.form.get('ttl')
-    if clean_input():
-        ttl = TIME_CONVERSION[ttl.lower()]
-        token = set_password(password, ttl)
-        base_url = set_base_url(request)
-        link = base_url + quote_plus(token)
-        if request.accept_mimetypes.accept_json and not \
-           request.accept_mimetypes.accept_html:
-            return jsonify(link=link, ttl=ttl)
-        else:
-            return render_template('confirm.html', password_link=link)
-    else:
-        abort(500)
-
-
-@app.route('/api/set_password/', methods=['POST'])
+# API routes with /rejectsecretapi prefix
+@app.route('/rejectsecretapi/set_password/', methods=['POST'])
 def api_handle_password():
     password = request.json.get('password')
     ttl = int(request.json.get('ttl', DEFAULT_API_TTL))
@@ -255,7 +237,31 @@ def api_handle_password():
         abort(500)
 
 
-@app.route('/api/v2/passwords', methods=['POST'])
+@app.route('/rejectsecretapi/v2/passwords/<token>', methods=['HEAD'])
+def api_v2_check_password(token):
+    token = unquote_plus(token)
+    if not password_exists(token):
+        return ('', 404)
+    else:
+        return ('', 200)
+
+
+@app.route('/rejectsecretapi/v2/passwords/<token>', methods=['GET'])
+def api_v2_retrieve_password(token):
+    token = unquote_plus(token)
+    password = get_password(token)
+    if not password:
+        return as_not_found_problem(
+            request,
+            "get-password-error",
+            "The password doesn't exist.",
+            [{"name": "token"}]
+        )
+    else:
+        return jsonify(password=password)
+
+
+@app.route('/rejectsecretapi/v2/passwords', methods=['POST'])
 def api_v2_set_password():
     password = request.json.get('password')
     ttl = int(request.json.get('ttl', DEFAULT_API_TTL))
@@ -275,7 +281,6 @@ def api_v2_set_password():
         })
 
     if len(invalid_params) > 0:
-        # Return a ProblemDetails expliciting issue with Password and/or TTL
         return as_validation_problem(
             request,
             "set-password-validation-error",
@@ -300,53 +305,6 @@ def api_v2_set_password():
         "ttl": ttl
     }
     return jsonify(response_content)
-
-
-@app.route('/api/v2/passwords/<token>', methods=['HEAD'])
-def api_v2_check_password(token):
-    token = unquote_plus(token)
-    if not password_exists(token):
-        # Return NotFound, to indicate that password does not exists (anymore or at all)
-        return ('', 404)
-    else:
-        # Return OK, to indicate that password still exists
-        return ('', 200)
-
-
-@app.route('/api/v2/passwords/<token>', methods=['GET'])
-def api_v2_retrieve_password(token):
-    token = unquote_plus(token)
-    password = get_password(token)
-    if not password:
-        # Return NotFound, to indicate that password does not exists (anymore or at all)
-        return as_not_found_problem(
-            request,
-            "get-password-error",
-            "The password doesn't exist.",
-            [{"name": "token"}]
-        )
-    else:
-        # Return OK and the password in JSON message
-        return jsonify(password=password)
-
-
-@app.route('/<password_key>', methods=['GET'])
-def preview_password(password_key):
-    password_key = unquote_plus(password_key)
-    if not password_exists(password_key):
-        return render_template('expired.html'), 404
-
-    return render_template('preview.html')
-
-
-@app.route('/<password_key>', methods=['POST'])
-def show_password(password_key):
-    password_key = unquote_plus(password_key)
-    password = get_password(password_key)
-    if not password:
-        return render_template('expired.html'), 404
-
-    return render_template('password.html', password=password)
 
 
 @app.route('/_/_/health', methods=['GET'])

@@ -15,7 +15,7 @@ export const createSecret = async (secret: string, ttl: string): Promise<SecretR
                       ttl.toLowerCase() === 'week' ? 604800 :
                       ttl.toLowerCase() === 'day' ? 86400 : 3600;
 
-    const response = await api.post<SecretResponse>('/api/set_password/', {
+    const response = await api.post<SecretResponse>('/set_password/', {
         password: secret,
         ttl: ttlSeconds
     });
@@ -28,7 +28,7 @@ export const createSecret = async (secret: string, ttl: string): Promise<SecretR
 
 export const getSecret = async (token: string): Promise<string> => {
     try {
-        const response = await api.get(`/api/v2/passwords/${token}`);
+        const response = await api.get(`/v2/passwords/${token}`);
         if (response.data && response.data.password) {
             return response.data.password;
         }
@@ -43,7 +43,7 @@ export const getSecret = async (token: string): Promise<string> => {
 
 export const checkSecretExists = async (token: string): Promise<boolean> => {
     try {
-        await api.head(`/api/v2/passwords/${token}`);
+        await api.head(`/v2/passwords/${token}`);
         return true;
     } catch (error) {
         if (axios.isAxiosError(error) && error.response?.status === 404) {
