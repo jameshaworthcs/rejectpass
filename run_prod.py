@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 def build_frontend():
     os.chdir('frontend')
     # Build the frontend for production
-    subprocess.run(['npm', 'run', 'build'], shell=True, check=True)
+    subprocess.run('npm run build', shell=True, check=True)
     os.chdir('..')
 
 def run_server():
