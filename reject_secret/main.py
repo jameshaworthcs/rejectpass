@@ -209,20 +209,6 @@ def set_base_url(req):
     return base_url
 
 
-# Serve frontend static files
-@app.route('/', defaults={'path': ''})
-@app.route('/<path:path>')
-def serve_frontend(path):
-    # First check if it's a frontend static file
-    if path:
-        frontend_file = os.path.join(frontend_dist, path)
-        if os.path.exists(frontend_file) and os.path.isfile(frontend_file):
-            return send_from_directory(frontend_dist, path)
-    
-    # For all other routes, serve the React app's index.html
-    return send_from_directory(frontend_dist, 'index.html')
-
-
 # API routes with /rejectsecretapi prefix
 @app.route('/rejectsecretapi/set_password/', methods=['POST'])
 def api_handle_password():
@@ -311,6 +297,24 @@ def api_v2_set_password():
 @check_redis_alive
 def health_check():
     return {}
+
+
+# Frontend routes - this must be last to not intercept API routes
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve_frontend(path):
+    # Skip serving frontend for API routes
+    if path.startswith('rejectsecretapi/'):
+        return abort(404)
+        
+    # First check if it's a frontend static file
+    if path:
+        frontend_file = os.path.join(frontend_dist, path)
+        if os.path.exists(frontend_file) and os.path.isfile(frontend_file):
+            return send_from_directory(frontend_dist, path)
+    
+    # For all other routes, serve the React app's index.html
+    return send_from_directory(frontend_dist, 'index.html')
 
 
 @check_redis_alive
