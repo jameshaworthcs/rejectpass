@@ -54,3 +54,4 @@ ENV/
 # Translation catalogs
 *.mo
 *.pot
+.env
