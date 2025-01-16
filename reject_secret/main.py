@@ -303,19 +303,16 @@ def health_check():
 # Frontend routes - serve static files with higher priority
 @app.route('/<path:path>')
 def serve_static(path):
-    if path:
-        frontend_file = os.path.join(frontend_dist, path)
-        if os.path.exists(frontend_file) and os.path.isfile(frontend_file):
-            return send_from_directory(frontend_dist, path)
+    # First check if it's a frontend static file
+    frontend_file = os.path.join(frontend_dist, path)
+    if os.path.exists(frontend_file) and os.path.isfile(frontend_file):
+        return send_from_directory(frontend_dist, path)
     return abort(404)  # Let other routes handle it
 
 # Catch-all route for the React app - lowest priority
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve_frontend(path):
-    # Don't handle API or health check routes
-    if path.startswith('rejectsecretapi/') or path == '_/_/health':
-        return abort(404)
     return send_from_directory(frontend_dist, 'index.html')
 
 @check_redis_alive
