@@ -304,6 +304,10 @@ def health_check():
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve_frontend(path):
+    # Skip API and health check routes
+    if path.startswith('rejectsecretapi/') or path == '_/_/health':
+        return abort(404)
+        
     # First check if it's a frontend static file
     if path:
         frontend_file = os.path.join(frontend_dist, path)
