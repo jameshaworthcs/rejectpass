@@ -5,7 +5,7 @@ import uuid
 import redis
 
 from cryptography.fernet import Fernet
-from flask import abort, Flask, request, jsonify, make_response, send_from_directory
+from flask import abort, Flask, request, jsonify, make_response, send_from_directory, Blueprint
 from flask_cors import CORS
 from redis.exceptions import ConnectionError
 from urllib.parse import quote_plus
@@ -21,6 +21,9 @@ TOKEN_SEPARATOR = '~'
 # Initialize Flask Application
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
+
+# Create Blueprint for API routes
+api = Blueprint('api', __name__, url_prefix='/rejectsecretapi')
 
 # Set up frontend static files directory
 frontend_dist = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'frontend', 'dist'))
@@ -209,8 +212,8 @@ def set_base_url(req):
     return base_url
 
 
-# API routes with /rejectsecretapi prefix
-@app.route('/rejectsecretapi/set_password/', methods=['POST'])
+# API routes
+@api.route('/set_password/', methods=['POST'])
 def api_handle_password():
     password = request.json.get('password')
     ttl = int(request.json.get('ttl', DEFAULT_API_TTL))
@@ -222,8 +225,7 @@ def api_handle_password():
     else:
         abort(500)
 
-
-@app.route('/rejectsecretapi/v2/passwords/<token>', methods=['HEAD'])
+@api.route('/v2/passwords/<token>', methods=['HEAD'])
 def api_v2_check_password(token):
     token = unquote_plus(token)
     if not password_exists(token):
@@ -231,8 +233,7 @@ def api_v2_check_password(token):
     else:
         return ('', 200)
 
-
-@app.route('/rejectsecretapi/v2/passwords/<token>', methods=['GET'])
+@api.route('/v2/passwords/<token>', methods=['GET'])
 def api_v2_retrieve_password(token):
     token = unquote_plus(token)
     password = get_password(token)
@@ -246,8 +247,7 @@ def api_v2_retrieve_password(token):
     else:
         return jsonify(password=password)
 
-
-@app.route('/rejectsecretapi/v2/passwords', methods=['POST'])
+@api.route('/v2/passwords', methods=['POST'])
 def api_v2_set_password():
     password = request.json.get('password')
     ttl = int(request.json.get('ttl', DEFAULT_API_TTL))
@@ -292,21 +292,18 @@ def api_v2_set_password():
     }
     return jsonify(response_content)
 
+# Register the API blueprint
+app.register_blueprint(api)
 
 @app.route('/_/_/health', methods=['GET'])
 @check_redis_alive
 def health_check():
     return {}
 
-
-# Frontend routes - this must be last to not intercept API routes
+# Frontend routes - this must be last
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve_frontend(path):
-    # Skip serving frontend for API routes
-    if path.startswith('rejectsecretapi/'):
-        return abort(404)
-        
     # First check if it's a frontend static file
     if path:
         frontend_file = os.path.join(frontend_dist, path)
@@ -316,12 +313,10 @@ def serve_frontend(path):
     # For all other routes, serve the React app's index.html
     return send_from_directory(frontend_dist, 'index.html')
 
-
 @check_redis_alive
 def main():
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
-
 
 if __name__ == '__main__':
     main()
