@@ -1,4 +1,7 @@
 ========
+This is a fork of SnapPass, with major changes to the frontend and backend.
+========
+========
 SnapPass
 ========
 

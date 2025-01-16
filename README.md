@@ -39,15 +39,15 @@ A secure, self-destructing secret sharing application. Share passwords and sensi
 
 5. Run the application:
    ```bash
-   python run.py
+   python run_prod.py
    ```
 
-The application will start both the frontend and backend servers and open your default browser to http://localhost:5173.
+The application will start both the frontend and backend servers. In your browser, go to http://localhost:5000.
 
 ## Development
 
-- Frontend runs on http://localhost:5173
-- Backend API runs on http://localhost:5000
+- RejectPass runs on http://localhost:5000
+- Frontend proxies to the backend API on http://localhost:5000/api/...
 - Redis should be running on localhost:6379
 
 ## Environment Variables
@@ -58,8 +58,9 @@ The following environment variables can be set to customize the application:
 - `REDIS_PORT`: Redis port (default: 6379)
 - `REDIS_PREFIX`: Key prefix for Redis storage (default: reject)
 - `FLASK_DEBUG`: Enable debug mode (default: 0)
-- `SECRET_KEY`: Flask secret key
+- `SECRET_KEY`: Flask secret key (Change this to a random string)
 - `NO_SSL`: Disable SSL (default: False)
+- `PORT`: The port to run the server on (default: 5000)
 
 ## License
 
