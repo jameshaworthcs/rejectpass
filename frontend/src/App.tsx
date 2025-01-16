@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { MantineProvider, AppShell, Title, Container } from '@mantine/core';
+import { MantineProvider, AppShell, Title, Container, Text, Anchor } from '@mantine/core';
 import { useColorScheme } from '@mantine/hooks';
 import { Link } from 'react-router-dom';
 import { CreateSecret } from './components/CreateSecret';
@@ -13,6 +13,7 @@ function App() {
       <Router>
         <AppShell
           header={{ height: 60 }}
+          footer={{ height: 40 }}
           padding="md"
         >
           <AppShell.Header>
@@ -29,6 +30,14 @@ function App() {
               <Route path="/:token" element={<ViewSecret />} />
             </Routes>
           </AppShell.Main>
+
+          <AppShell.Footer>
+            <Container size="lg" style={{ display: 'flex', alignItems: 'center', height: '100%', justifyContent: 'center' }}>
+              <Text c="dimmed" size="sm">
+                MIT License | <Anchor href="https://github.com/jameshaworthcs/rejectpass" target="_blank" rel="noopener noreferrer">GitHub</Anchor>
+              </Text>
+            </Container>
+          </AppShell.Footer>
         </AppShell>
       </Router>
     </MantineProvider>
