@@ -23,7 +23,7 @@ app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
 # Create Blueprint for API routes
-api = Blueprint('api', __name__, url_prefix='/rejectsecretapi')
+api = Blueprint('api', __name__, url_prefix='/api')
 
 # Set up frontend static files directory
 frontend_dist = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'frontend', 'dist'))
@@ -303,15 +303,16 @@ def health_check():
 # Frontend routes - serve static files with higher priority
 @app.route('/<path:path>')
 def serve_static(path):
-    # First check if it's a frontend static file
-    frontend_file = os.path.join(frontend_dist, path)
-    if os.path.exists(frontend_file) and os.path.isfile(frontend_file):
-        return send_from_directory(frontend_dist, path)
-    return abort(404)  # Let other routes handle it
+    # Only try to serve static files for known static file extensions
+    if path.endswith(('.js', '.css', '.html', '.ico', '.png', '.jpg', '.jpeg', '.gif', '.svg')):
+        frontend_file = os.path.join(frontend_dist, path)
+        if os.path.exists(frontend_file) and os.path.isfile(frontend_file):
+            return send_from_directory(frontend_dist, path)
+    # For all other paths, serve the React app
+    return send_from_directory(frontend_dist, 'index.html')
 
-# Catch-all route for the React app - lowest priority
+# Catch-all route for the React app
 @app.route('/', defaults={'path': ''})
-@app.route('/<path:path>')
 def serve_frontend(path):
     return send_from_directory(frontend_dist, 'index.html')
 

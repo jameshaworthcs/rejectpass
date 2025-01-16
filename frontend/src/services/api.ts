@@ -20,10 +20,8 @@ export const createSecret = async (secret: string, ttl: string): Promise<SecretR
         ttl: ttlSeconds
     });
     
-    // Extract token from backend URL and create frontend URL
-    const token = response.data.link.split('/').pop();
-    const newLink = `${window.location.origin}/${token}`;
-    return { ...response.data, link: newLink };
+    // Keep the token as-is from the backend response
+    return response.data;
 };
 
 export const getSecret = async (token: string): Promise<string> => {
